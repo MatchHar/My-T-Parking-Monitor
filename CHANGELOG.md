@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- Keep Companion port 8083 off public/LAN interfaces when integrating with a
+  Docker-hosted gateway; fail closed if Docker's private bridge gateway cannot
+  be resolved.
+- Require an explicit database password and add race, vulnerability, secret,
+  CodeQL, and release-provenance checks to CI.
+- Require patched Go 1.25.12 for builds after the vulnerability scan identified
+  reachable standard-library flaws in the original Go 1.25.0 toolchain.
+- Make the security policy version-independent and clarify the authentication
+  probe boundary.
+
 ## 1.10.11
 
 - **MQTT discovery (P1):** detect docker mosquitto service **or** host `:1883`

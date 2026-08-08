@@ -4,6 +4,7 @@ set -euo pipefail
 INSTALL_DIR="${INSTALL_DIR:-/opt/my-t-companion}"
 COMPOSE_PROJECT="${COMPOSE_PROJECT:-my-t-companion}"
 BACKUP_DIR="${BACKUP_DIR:-/var/backups/my-t-companion}"
+ALPINE_IMAGE="${ALPINE_IMAGE:-alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc}"
 INCLUDE_PAIRING=false
 
 if [[ "${1:-}" == "--include-pairing" ]]; then
@@ -25,10 +26,10 @@ work_dir="$(mktemp -d)"
 trap 'rm -rf "$work_dir"' EXIT
 mkdir "$work_dir/data"
 
-docker run --rm -v "$volume:/source:ro" -v "$work_dir/data:/backup" alpine:3.20 \
+docker run --rm -v "$volume:/source:ro" -v "$work_dir/data:/backup" "$ALPINE_IMAGE" \
   sh -c 'for f in parking-events.json software-notifications.json; do [ ! -f "/source/$f" ] || cp "/source/$f" /backup/; done'
 if [[ "$INCLUDE_PAIRING" == true ]]; then
-  docker run --rm -v "$volume:/source:ro" -v "$work_dir/data:/backup" alpine:3.20 \
+  docker run --rm -v "$volume:/source:ro" -v "$work_dir/data:/backup" "$ALPINE_IMAGE" \
     sh -c '[ ! -f /source/software-push-pairing.json ] || cp /source/software-push-pairing.json /backup/'
 fi
 

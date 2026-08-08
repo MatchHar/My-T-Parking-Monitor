@@ -943,7 +943,10 @@ func initDB() {
 	host := getenv("DATABASE_HOST", "database")
 	port := getenv("DATABASE_PORT", "5432")
 	user := getenv("DATABASE_USER", "teslamate")
-	pass := getenv("DATABASE_PASS", "secret")
+	pass := strings.TrimSpace(os.Getenv("DATABASE_PASS"))
+	if pass == "" {
+		log.Fatal("[error] DATABASE_PASS is required")
+	}
 	name := getenv("DATABASE_NAME", "teslamate")
 	sslmode := getenv("DATABASE_SSL", "disable")
 	timeout := getenv("DATABASE_TIMEOUT", "60000")

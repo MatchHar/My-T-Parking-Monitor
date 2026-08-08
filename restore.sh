@@ -3,6 +3,7 @@ set -euo pipefail
 
 INSTALL_DIR="${INSTALL_DIR:-/opt/my-t-companion}"
 COMPOSE_PROJECT="${COMPOSE_PROJECT:-my-t-companion}"
+ALPINE_IMAGE="${ALPINE_IMAGE:-alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc}"
 [[ "${EUID:-$(id -u)}" -eq 0 ]] || { printf 'Run with sudo or as root.\n' >&2; exit 1; }
 [[ $# -eq 1 ]] || { printf 'Usage: sudo %s BACKUP.tar.gz\n' "$0" >&2; exit 2; }
 archive="$(realpath "$1")"
@@ -37,7 +38,7 @@ docker compose --project-name "$COMPOSE_PROJECT" --env-file "$INSTALL_DIR/.env" 
   --file "$INSTALL_DIR/docker-compose.yml" stop companion
 trap 'docker compose --project-name "$COMPOSE_PROJECT" --env-file "$INSTALL_DIR/.env" --file "$INSTALL_DIR/docker-compose.yml" start companion >/dev/null 2>&1 || true; rm -rf "$work_dir"' EXIT
 
-docker run --rm -v "$volume:/data" -v "$work_dir/data:/restore:ro" alpine:3.20 sh -c '
+docker run --rm -v "$volume:/data" -v "$work_dir/data:/restore:ro" "$ALPINE_IMAGE" sh -c '
   for f in parking-events.json software-notifications.json software-push-pairing.json; do
     [ ! -f "/restore/$f" ] || { cp "/restore/$f" "/data/$f"; chown 10001:10001 "/data/$f"; chmod 0600 "/data/$f"; }
   done

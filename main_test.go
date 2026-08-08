@@ -50,6 +50,21 @@ func TestInstallerIncludesParkingEventMonitor(t *testing.T) {
 	}
 }
 
+func TestInstallerNeverPublishesCompanionOnAllInterfaces(t *testing.T) {
+	installer, err := os.ReadFile("install.sh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, unsafe := range []string{
+		"s/127\\.0\\.0\\.1:8083:8080/8083:8080",
+		`- "8083:8080"`,
+	} {
+		if strings.Contains(string(installer), unsafe) {
+			t.Fatalf("installer contains unsafe public Companion mapping %q", unsafe)
+		}
+	}
+}
+
 func TestTokenEqual(t *testing.T) {
 	t.Parallel()
 	if !tokenEqual("correct-token", "correct-token") {

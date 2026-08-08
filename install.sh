@@ -703,9 +703,18 @@ setup_docker_teslamate_caddy_routes() {
   # END MY T VPS COMPANION
 
 CADDY
-  # Companion on 127.0.0.1 is invisible from docker Caddy; publish 8083 on all interfaces.
+  # Docker Caddy cannot reach a host loopback listener. Bind Companion only to
+  # Docker's private bridge gateway so host.docker.internal can reach it without
+  # publishing port 8083 on any LAN/public interface.
   if grep -q '127.0.0.1:8083:8080' "$COMPOSE_FILE" 2>/dev/null; then
-    sed -i.bak 's/127\.0\.0\.1:8083:8080/8083:8080/g' "$COMPOSE_FILE"
+    companion_bridge_gateway="$(
+      docker network inspect bridge --format '{{(index .IPAM.Config 0).Gateway}}' 2>/dev/null || true
+    )"
+    [[ "$companion_bridge_gateway" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+      || fail "Could not resolve Docker's private bridge gateway; refusing to expose Companion port 8083."
+    sed -i.bak \
+      "s/127\\.0\\.0\\.1:8083:8080/${companion_bridge_gateway}:8083:8080/g" \
+      "$COMPOSE_FILE"
     rm -f "$COMPOSE_FILE.bak"
     docker compose --project-name "$COMPOSE_PROJECT" --env-file "$ENV_FILE" --file "$COMPOSE_FILE" up -d
   fi
@@ -721,7 +730,7 @@ CADDY
   mv "$caddyfile.new" "$caddyfile"
   rm -f "$insert"
   (cd "$TESLAMATE_DIR" && docker compose up -d caddy 2>/dev/null; docker compose restart caddy 2>/dev/null) || true
-  log "Patched $caddyfile (backup $backup); companion reachable via host.docker.internal:8083"
+  log "Patched $caddyfile (backup $backup); Companion is reachable only on Docker's private bridge gateway"
   return 0
 }
 
@@ -783,7 +792,7 @@ CADDY
   cat > "$INSTALL_DIR/edge/docker-compose.yml" <<YAML
 services:
   my-t-api-edge:
-    image: caddy:2.8-alpine
+    image: caddy:2.8-alpine@sha256:af32e97399febea808609119bb21544d0265c58a02836576e32a2d082c262c17
     restart: unless-stopped
     network_mode: host
     volumes:
